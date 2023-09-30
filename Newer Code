@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import *
+from tkinter import messagebox
 
 root = tk.Tk()
 root.title("Drugs")
@@ -17,7 +17,7 @@ search = tk.Entry(root)
 label = tk.Label(root)
 label2 = tk.Label(root)
 
-output = tk.Listbox(root, height=5, width=15, font=('Times New Roman', 16))
+output = tk.Text(root, height=5, width=15, font=('Times New Roman', 16))
 output.grid(row=3, pady=(0,50), sticky='N')
 
 button = tk.Button(root, command=lambda: new())
@@ -33,11 +33,14 @@ def Sfunction(event):
     for drug_list in types[1]:
         if text.lower() in [d.lower() for d in drug_list]:
             category = types[0][types[1].index(drug_list)]
-            output.insert('end', category)
-            output.yview(END)
+            output.insert('end', category, "link")
+            output.tag_configure("link", foreground="blue", underline=True)
+            output.tag_bind("link", "<Button-1>", lambda event: open_new_window(category))
             return
     output.insert('end', "Not Available")
 
+def open_new_window(category):
+    messagebox.showinfo("Link Clicked", f"You clicked on {category}")
 
 def new():
     Sfunction(None)
