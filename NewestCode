@@ -24,7 +24,7 @@ button.config(text='Search')
 button.config(font={'Times New Roman', 30})
 button.grid(row=2, pady=(0,30), sticky='N')
 
-types = [['Pharma', 'InovaCare'], [['Advil', 'Xanax'], ['Advil', 'Tylenol']]]
+types = [['Pharma', 'InovaCare'], [['Advil', 'advil', 'Xanax', 'xanax'], ['Advil', 'advil', 'Tylenol', 'tylenol']]]
 
 
 def Sfunction(event):
