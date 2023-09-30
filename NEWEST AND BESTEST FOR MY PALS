@@ -7,9 +7,7 @@ def open_new_window(category):
 
     label = tk.Label(window, text=category, font=('Times New Roman', 30))
     label.grid(row=0, column=0)
-
     
-
 
 def Sfunction(event):
     text = search.get()
@@ -34,30 +32,51 @@ def on_select(event):
     selected_category = listbox.get(listbox.curselection())
     open_new_window(selected_category)
 
-root = tk.Tk()
-root.title("Drugs")
-root.config(background='#804D5A')
-root.geometry("700x700")
 
-root.columnconfigure(0, weight=1)
-root.rowconfigure(0, weight=1)
-root.rowconfigure(1, weight=1)
-root.rowconfigure(2, weight=1)
-root.rowconfigure(3, weight=1)
+def sortListBox(event):
+    """Function sorts listbox based on user entry"""
 
-search = tk.Entry(root)
-label = tk.Label(root)
-header = tk.Label(root)
+    # Get searched word 
+    searchWord = search.get()
 
-listbox = tk.Listbox(root, height=5, width=30, font=('Times New Roman', 16))
-listbox.grid(row=3, pady=(0,50), sticky='N')
+    # If SearchWord is nothing display full list 
+    if searchWord == "" or not searchWord:
+        
+        drugDisplay.delete(0, 'end')
+        [drugDisplay.insert('end', medicine) for medicine in (sorted(displayList))]
+        
+    else:
+
+        # Traverse list of medicine to find searched word 
+        tempList = []
+        for medicine in displayList:
+            if searchWord in medicine:
+                tempList.append(medicine)
+
+        # Display corresponding matches to word 
+        drugDisplay.delete(0, 'end')
+        [drugDisplay.insert('end', medicine) for medicine in (sorted(tempList))]
+        
+        
 
 
-button = tk.Button(root, command=lambda: new())
-button.config(text='Search')
-button.config(font={'Times New Roman', 30})
-button.grid(row=2, pady=(0,30), sticky='N')
-types = [['innovicares', 'RxHelp'], [
+def getCoverage(event):
+    """Function enters the coverage associated with selected medicines"""
+
+    # Get listbox selection
+    selection = [drugDisplay.get(i) for i in drugDisplay.curselection()][0]
+
+    # Compile List of associated coverages 
+    companyList = []
+    for i in range (len(types[1])):
+        if selection in types[1][i]:
+            companyList.append(types[0][i])
+
+    # Insert coverages into associated listbox 
+    listbox.delete(0, 'end')
+    [listbox.insert('end', coverage) for coverage in (sorted(companyList))]
+
+types = [['Innovicares', 'RxHelp'], [
     ['Abilify', 'Adderall XR', 'Advagraf', 'Advair Diskus', 'Amerge', 'APPRILON', 'Arimidex', 'Avodart', 'Azilect', 
      'BEZALIP SR', 'Biphentin', 'BRILINTA', 'Casodex', 'Celexa', 'CellCept', 'Cesamet', 'Cipralex', 'COMBIGAN', 'Concerta', 
      'Coversyl', 'Coversyl Plus', 'Coversyl Plus HD', 'Crestor', 'Cymbalta', 'Diamicron MR', 'Dificid', 'Duotrav PQ', 'Elocom', 
@@ -78,23 +97,70 @@ types = [['innovicares', 'RxHelp'], [
      'TENORMIN', 'VFEND', 'Vimovo', 'Xalacom', 'Xalatan', 'XATRAL', 'XELJANZ', 'ZESTORETIC', 'ZESTRIL', 'Zocor', 'Zoloft', 'ZOMIG', 
      'ZOMIG RAPIMELT', 'Zytiga']]]
 
+# Create Display List
+displayList = []
+for coverage in types[1]:
+    for medicine in coverage:
+        if medicine not in displayList:
+            displayList.append(medicine)
 
+            
+# Root Declaration
+root = tk.Tk()
+root.title("Drugs")
+root.config(background='#804D5A')
+root.geometry("700x700")
 
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
+root.rowconfigure(3, weight=1)
 
+# Search Button
+button = tk.Button(root, command=lambda: new())
+button.config(text='Search')
+button.config(font={'Times New Roman', 30})
+button.grid(row=2, column=1, pady=(0,30), sticky='N')
 
+# Frame
+frame = tk.Frame(root)
+frame.grid(row=0, column =0, rowspan =5, sticky = 'NSEW', padx = 20, pady=20)
+# Scroll bar
+scroll = tk.Scrollbar(frame, orient = 'vertical')
+scroll.pack(side ='right', fill ='both')
 
+# Display Listbox
+drugDisplay = tk.Listbox(frame, yscrollcommand = scroll.set)
+scroll.config(command = drugDisplay.yview)
+drugDisplay.pack(fill ='both', expand =1)
+[drugDisplay.insert('end', medicine) for medicine in (sorted(displayList))]
+drugDisplay.bind('<<ListboxSelect>>', getCoverage)
 
-def new():
-    Sfunction(None)
+# Entry Bar
+search = tk.Entry(root)
+search.bind('<KeyRelease>', sortListBox)
+search.grid(row=1, column =1, sticky='N')
 
-header.config(text="Coverage Offered At: ", font=('Times New Roman', 20, 'bold'), background='#804D5A', fg='#FFFFFF')
-header.grid(row=2, pady=(75,10), sticky='S')
-
+# SEARCH YOUR DRUG Label
+label = tk.Label(root)
 label.config(text='Search your drug')
 label.config(background='#804D5A', fg='#FFFFFF')
 label.config(font=('Times New Roman', 20, 'bold'))
-label.grid(row=0, pady=(75,10), sticky='S')
+label.grid(row=0, column =1, pady=(75,10), sticky='S')
 
+# Listbox 
+listbox = tk.Listbox(root, height=5, width=30, font=('Times New Roman', 16))
+listbox.grid(row=3, column =1, pady=(0,50), sticky='N', padx =20)
+listbox.bind('<Double-Button-1>', on_select)
+
+# COVERAGE OFFERED Label
+header = tk.Label(root)
+header.config(text="Coverage Offered At: ", font=('Times New Roman', 20, 'bold'), background='#804D5A', fg='#FFFFFF')
+header.grid(row=2, column =1, pady=(75,10), sticky='S')
+
+
+root.mainloop()
 search.bind('<Return>', Sfunction)
 search.grid(row=1, sticky='N')
 
