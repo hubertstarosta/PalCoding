@@ -34,6 +34,9 @@ def Sfunction(event):
             if text in drugs:
                 output.insert('end', "TEST_CASE")
                 return
+            else:
+                output.insert('ende', "Not Available")
+                return
 
 
 def new():
