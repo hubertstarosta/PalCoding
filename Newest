@@ -34,12 +34,19 @@ def Sfunction(event):
         if text.lower() in [d.lower() for d in drug_list]:
             category = types[0][types[1].index(drug_list)]
             output.insert('end', category, "link")
+<<<<<<< HEAD:NewestCode
             output.yview(tk.END)
             output.tag_configure("link", foreground="blue", underline=True)
             output.tag_bind("link", "<Button-1>", lambda event: open_new_window(category))
             return
     output.insert('end', "Not Available\n")
     output.yview(tk.END)
+=======
+            output.tag_configure("link", foreground="blue", underline=True)
+            output.tag_bind("link", "<Button-1>", lambda event: open_new_window(category))
+            return
+    output.insert('end', "Not Available")
+>>>>>>> 4d92fb48ec719241412b1389481f67186f819518:Newest
 
 def open_new_window(category):
     messagebox.showinfo("Link Clicked", f"You clicked on {category}")
