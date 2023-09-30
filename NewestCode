@@ -16,7 +16,7 @@ search = tk.Entry(root)
 label = tk.Label(root)
 label2 = tk.Label(root)
 
-output = tk.Listbox(root, height=5, width=25)
+output = tk.Listbox(root, height=5, width=15, font=('Times New Roman', 16))
 output.grid(row=3, pady=(0,50), sticky='N')
 
 button = tk.Button(root, command=lambda: new())
@@ -32,7 +32,7 @@ def Sfunction(event):
     for item in types[1]:
         for drugs in types[1]:
             if text in drugs:
-                output.insert('end', text)
+                output.insert('end', "TEST_CASE")
                 return
 
 
