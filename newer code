@@ -4,7 +4,7 @@ import webbrowser
 def open_new_window(category):
     window = tk.Toplevel(root)
     window.title("Insurance Coverage Cards")
-    window.geometry("700x700")
+    window.geometry("500x500")
     window.config(background="#804D5A")
 
 
