@@ -1,0 +1,200 @@
+import tkinter as tk
+import webbrowser
+
+
+
+def open_new_window(category):
+
+    window = tk.Toplevel(root)
+    window.title("Insurance Coverage Cards")
+    window.geometry("700x700")
+    window.config(background="#659DBD")
+
+
+    window.columnconfigure(0, weight=1)
+    
+
+    label = tk.Label(window, text="Step-By-Step")
+    label.grid(row=0, column=0, pady=(50,75))
+    label.config(font=('Times New Roman', 30, 'bold'), fg="white", bg="#659DBD")
+
+    label2 = tk.Label(window, text=f"Your coverage is being offered at:")
+    label2.grid(row=1, column=0)
+    label2.config(font=('Times New Roman', 20), fg="white", bg="#659DBD")
+
+    label_category = tk.Label(window, text=category)
+    label_category.grid(row=2, column=0, pady=(0,30))
+    label_category.config(font=('Times New Roman', 30, 'bold', 'underline'), fg="white", bg="#659DBD")
+
+    linkDict = {'Innovicares': 'https://www.innovicares.ca/en#whats-covered', 'RxHelp': 'https://www.rxhelp.ca/RxHelpOne'}
+
+    def cFunction(site):
+        webbrowser.open(site) #NEEDS EDITING 
+
+    button = tk.Button(window, text="Go-To", command= lambda: cFunction(linkDict[category]))
+    button.grid(row=3, column=0, pady=(0,25))
+
+    T = tk.Text(window, height=12, width=32)
+    T.grid(row=4, column=0, padx=(0,350))
+    T.config(highlightbackground="#DAAD86", highlightcolor="#DAAD86", highlightthickness=2, bd=1)
+    T.insert(tk.END, "\n\nStep 1: Click ""Go-To""\n\nStep 2: Fill in province field\n\nStep 3: Choose format of card\n\nStep 4: Select your medication \n")
+
+
+def Sfunction(event):
+    text = search.get().lower()  # Convert input to lowercase
+    matching_categories = []
+
+    for drug_list in types[1]:
+        if text in [d.lower() for d in drug_list]:  # Compare in lowercase
+            category = types[0][types[1].index(drug_list)]
+            matching_categories.append(category)
+
+    if matching_categories:
+        listbox.delete(0, tk.END)
+
+        for category in matching_categories:
+            listbox.insert(tk.END, category)
+
+    else:
+        listbox.delete(0, tk.END)
+        listbox.insert(tk.END, "Drug Not Available")
+
+def on_select(event):
+
+    selected_indices = listbox.curselection()
+    if selected_indices:
+        selection = listbox.get(selected_indices[0])
+
+    open_new_window(selection)
+
+
+def sortListBox(event):
+    """Function sorts listbox based on user entry"""
+
+    # Get searched word 
+    searchWord = search.get().lower()  # Convert input to lowercase
+
+    if searchWord == "" or not searchWord:
+        
+        drugDisplay.delete(0, 'end')
+        [drugDisplay.insert('end', medicine) for medicine in (sorted(displayList))]
+        
+    else:
+
+        tempList = []
+        for medicine in displayList:
+            if searchWord in medicine.lower():  # Compare in lowercase
+                tempList.append(medicine)
+
+        drugDisplay.delete(0, 'end')
+        [drugDisplay.insert('end', medicine) for medicine in (sorted(tempList))]
+        
+        
+
+
+def getCoverage(event):
+    selected_indices = drugDisplay.curselection()
+    if selected_indices:
+        selection = drugDisplay.get(selected_indices[0])
+
+        # Compile List of associated coverages 
+        companyList = []
+        for i in range (len(types[1])):
+            if selection in types[1][i]:
+                companyList.append(types[0][i])
+
+        # Insert coverages into associated listbox 
+        listbox.delete(0, 'end')
+        [listbox.insert('end', coverage) for coverage in (sorted(companyList))]
+
+types = [['Innovicares', 'RxHelp'], [
+    ['Abilify', 'Adderall xr', 'Advagraf', 'Advair diskus', 'Amerge', 'Apprilon', 'Arimidex', 'Avodart', 'Azilect', 
+    'Bezalip sr', 'Biphentin', 'Brilinta', 'Casodex', 'Celexa', 'Cellcept', 'Cesamet', 'Cipralex', 'Combigan', 'Concerta', 
+    'Coversyl', 'Coversyl plus', 'Coversyl plus hd', 'Crestor', 'Cymbalta', 'Diamicron mr', 'Dificid', 'Duotrav pq', 'Elocom', 
+    'Ezetrol', 'Faslodex', 'Flovent hfa', 'Forxiga', 'Fosavance', 'Fosrenol', 'Ge200 glucose test strips', 'Glumetza', 'Imitrex df', 
+    'Intuniv xr', 'Iressa', 'Lamictal', 'Latuda', 'Lokelma', 'Losec', 'Lotriderm', 'Marvelon', 'Maxalt rpd', 'Maxalt', 'Mepron', 'Nasonex', 
+    'Nexium', 'Onglyza', 'Paxil', 'Plendil', 'Prezista', 'Prograf', 'Prometrium', 'Propecia', 'Proscar', 'Prozac', 'Pulmicort nebuamp', 
+    'Restasis multi-dose', 'Restasis', 'Rocaltrol', 'Sensipar', 'Seroquel xr', 'Seroquel ir', 'Singulair', 'Soriatane', 'Strattera', 'Sublinox', 
+    'Tactupump', 'Tactupump forte', 'Tamiflu', 'Tarceva', 'Tenormin', 'Valcyte', 'Valtrex', 'Vasotec', 'Vimovo', 'Wellbutrin xl', 'Xarelto', 'Xigduo', 
+    'Zestoretic', 'Zestril', 'Zocor', 'Zomig rapimelt', 'Zomig', 'Zovirax'],
+ 
+     
+    ['Accupril', 'Accuretic', 'Actonel dr', 'Alesse', 'Androgel', 'Arava', 'Aricept', 'Arimidex', 'Arixtra', 'Arthrotec', 
+    'Avalide', 'Avapro', 'Biaxin bid', 'Biaxin', 'Brilinta', 'Bystolic', 'Caduet', 'Casodex', 'Celebrex', 'Cellcept', 
+    'Concerta', 'Cosopt', 'Crestor', 'Detrol', 'Detrol la', 'Dicetel', 'Diclectin', 'Dymista', 'Ebixa', 'Eliquis', 
+    'Elocom', 'Epival', 'Ezetrol', 'Fosavance', 'Glucophage', 'Imovane', 'Invanz', 'Isoptin', 'Losec', 'Lotriderm', 
+    'Luvox', 'Lyrica', 'Marvelon', 'Mavik', 'Maxalt rpd', 'Maxalt', 'Nasonex', 'Nexium', 'Nitrolingual_pumpspray', 
+    'Onglyza', 'Otezla', 'Pantoloc', 'Plaquenil', 'Plavix', 'Plendil', 'Posanol', 'Prevacid', 'Prometrium', 'Propecia', 
+    'Proscar', 'Relpax', 'Rilutek', 'Rocaltrol', 'Rythmol', 'Serc', 'Seroquel', 'Seroquel xr', 'Singulair', 'Sporanox', 
+    'Strattera', 'Tamiflu', 'Tarceva', 'Tecta', 'Temodal', 'Tenormin', 'Vfend', 'Vimovo', 'Xalacom', 'Xalatan', 'Xatral', 
+    'Xeljanz', 'Zestoretic', 'Zestril', 'Zocor', 'Zoloft', 'Zomig', 'Zomig rapimelt', 'Zytiga']]]
+
+
+# Create Display List
+displayList = []
+for coverage in types[1]:
+    for medicine in coverage:
+        if medicine not in displayList:
+            displayList.append(medicine)
+
+            
+# Root Declaration
+root = tk.Tk()
+root.title("Drugs")
+root.config(background='#659DBD')
+root.geometry("700x700")
+
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+root.rowconfigure(1, weight=1)
+root.rowconfigure(2, weight=1)
+root.rowconfigure(3, weight=1)
+
+
+# Frame
+frame = tk.Frame(root)
+frame.grid(row=0, column =0, rowspan =5, sticky = 'NSEW', padx = 20, pady=20)
+# Scroll bar
+scroll = tk.Scrollbar(frame, orient = 'vertical')
+scroll.pack(side ='right', fill ='both')
+scroll.config(highlightbackground="#DAAD86", highlightcolor="#DAAD86", highlightthickness=2, bd=1)
+
+
+# Display Listbox
+drugDisplay = tk.Listbox(frame, yscrollcommand = scroll.set, exportselection= False)
+scroll.config(command = drugDisplay.yview)
+drugDisplay.pack(fill ='both', expand =1)
+[drugDisplay.insert('end', medicine) for medicine in (sorted(displayList))]
+drugDisplay.bind('<<ListboxSelect>>', getCoverage)
+drugDisplay.config(highlightbackground="#DAAD86", highlightcolor="#DAAD86", highlightthickness=2, bd=1)
+
+
+# Entry Bar
+search = tk.Entry(root)
+search.bind('<KeyRelease>', sortListBox)
+search.grid(row=1, column =1, sticky='N')
+search.bind('<Return>', Sfunction)  
+search.config(highlightbackground="#DAAD86", highlightcolor="#DAAD86", highlightthickness=2, bd=1)
+
+# SEARCH YOUR DRUG Label
+label = tk.Label(root)
+label.config(text='Search your drug')
+label.config(background='#659DBD', fg='#FFFFFF')
+label.config(font=('Times New Roman', 20, 'bold'))
+label.grid(row=0, column =1, pady=(75,10), sticky='S')
+
+# Listbox 
+listbox = tk.Listbox(root, height=5, width=30, font=('Times New Roman', 16), highlightthickness=2, highlightbackground="#DAAD86", 
+                     highlightcolor="#DAAD86", relief='sunken', bd=1)
+listbox.grid(row=3, column =1, pady=(0,50), sticky='N', padx =20)
+listbox.bind('<Double-Button-1>', on_select)
+
+# COVERAGE OFFERED Label
+header = tk.Label(root)
+header.config(text="Coverage Offered At: ", font=('Times New Roman', 20, 'bold'), background='#659DBD', fg='white')
+header.grid(row=2, column =1, pady=(75,10), sticky='S')
+
+search.grid(row=1, sticky='N')
+listbox.bind('<Double-Button-1>', on_select)
+
+root.mainloop()
