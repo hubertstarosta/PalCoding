@@ -1,0 +1,179 @@
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef struct bst_node *bst;
+
+struct bst_node {
+    int value;
+    bst left, right;
+};
+
+void bst_print_elements(bst tree) {
+    if (tree != NULL) {
+        bst_print_elements(tree->left);
+        printf("%d, ", tree->value);
+        bst_print_elements(tree->right);
+    }
+}
+
+void bst_print(bst tree) {
+    printf("{");
+    bst_print_elements(tree);
+    printf("}\n");
+}
+
+//creates a new leaf node
+struct bst_node* newNode(int value){
+    struct bst_node* newNode = (struct bst_node*)malloc(sizeof(struct bst_node));
+    if(newNode != NULL){
+        newNode->value = value;
+        newNode->left = NULL;
+        newNode->right = NULL;
+    }
+    return newNode;
+}
+
+bool bst_insert(bst *tree, int value) {
+    // TODO: Task 1: insert 'value' into 'tree'.
+    if (*tree == NULL){
+        *tree = newNode(value);
+        return true;
+    }
+    if(value < (*tree)->value){
+       return bst_insert(&(*tree)->left, value);
+    }
+    if(value >(*tree)->value){
+        return bst_insert(&(*tree)->right, value);
+    }
+
+    if(value == (*tree)->value){
+        return false;
+    }
+
+    printf("failed");
+    return false;
+}
+
+
+    bst traverseRight(bst tree){
+    while((tree)->left != NULL){
+        (tree)= (tree)->left;
+    }
+    return tree;
+}
+
+bool bst_remove(bst *tree, int value) {
+    // TODO: Task 2: remove 'value' from 'tree'.
+    if(*tree == NULL){
+        return false;
+    }
+    else if((*tree)->value < value){
+        return (bst_remove(&(*tree)->right, value));
+    }
+    else if((*tree)->value > value){
+        return (bst_remove(&(*tree)->left, value));
+    }
+
+    if((*tree)->value == value) {
+        //case 1.0: 0 children, safe to remove the node
+        if ((*tree)->left == NULL && (*tree)->right == NULL) {
+            *tree = NULL;
+            return true;
+        }
+
+            //case1.1: right child, point it to temp and rearrange pointer
+        else if ((*tree)->left == NULL && (*tree)->right != NULL) {
+            bst temp = *tree;
+            *tree = (*tree)->right;
+            free(temp);
+            return true;
+        }
+            //case1.2: left child
+        else if ((*tree)->right == NULL && (*tree)->left != NULL) {
+            bst temp = *tree;
+            *tree = (*tree)->left;
+            free(temp);
+            return true;
+        }
+        //Case 2: Double child // important to note that bst_remove)(&(*tree)->right is removing the duplicated subtree that is created
+        else if((*tree)->right !=NULL && (*tree)->left != NULL){
+            bst replacement = traverseRight((*tree)->right);
+            (*tree)->value = replacement->value;
+               bst_remove(&(*tree)->right, replacement->value);
+               return true;
+        }
+
+
+    }
+
+    return false;
+}
+
+
+
+void traverse(bst tree, bst *resultTree){
+    if(tree != NULL){
+        //traverse the tree and add into a new one
+        traverse(tree->left, resultTree);
+        bst_insert(resultTree, tree->value);
+
+        traverse(tree->right, resultTree);
+        bst_insert(resultTree, tree->value);
+    }
+}
+
+bst bst_union(bst tree1, bst tree2) {
+    bst resultTree = NULL;  // Create an empty result tree
+    traverse(tree1, &resultTree);  // Traverse and add elements from tree1 & tree2
+    traverse(tree2, &resultTree);
+    return resultTree;
+}
+
+//bst bst_intersection(bst tree1, bst tree2) {
+//    // TODO: Task 3: compute the intersection of 'tree1' and 'tree2'.
+//    return NULL;
+//}
+
+int main() {
+    // Initialize two trees.
+    bst tree1 = NULL, tree2 = NULL;
+
+    assert(bst_insert(&tree1, 1));
+    assert(bst_insert(&tree1, 9));
+    assert(bst_insert(&tree1, 2));
+    assert(bst_insert(&tree1, 7));
+    assert(bst_insert(&tree1, 0));
+    assert(bst_insert(&tree1, 3));
+    assert(bst_insert(&tree1, 13));
+    assert(bst_insert(&tree1, 5));
+    assert(!bst_insert(&tree1, 3));
+
+    // Should print: {0, 1, 2, 3, 5, 7, 9, 13, }
+    bst_print(tree1);
+
+    assert(bst_insert(&tree2, 12));
+    assert(bst_insert(&tree2, 13));
+    assert(bst_insert(&tree2, 1));
+    assert(bst_insert(&tree2, 0));
+    assert(bst_insert(&tree2, 19));
+    assert(bst_insert(&tree2, 7));
+    assert(!bst_insert(&tree2, 13));
+    assert(bst_insert(&tree2, 5));
+
+
+    // Should print: {0, 1, 5, 7, 12, 13, 19, }
+    bst_print(tree2);
+
+
+    // Should print: {0, 1, 2, 3, 5, 7, 9, 12, 13, 19, }
+    bst union_1_2 = bst_union(tree1, tree2);
+    bst_print(union_1_2);
+
+//    // Should print: {0, 1, 5, 7, 13, }
+//    bst intersection_1_2 = bst_intersection(tree1, tree2);
+//    bst_print(intersection_1_2);
+
+    return 0;
+}
