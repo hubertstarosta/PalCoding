@@ -1,0 +1,182 @@
+#include "model.h"
+#include "interface.h"
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#define TABLE_SIZE 70
+
+//Structure of a cell, I am creating a new type: CellContent that I can assign to things to
+//access if its a formula or not, and assign a value
+
+typedef struct {
+    int isFormula; //1 is formula 0 isnt
+    union {
+        double numericValue; // if text is number, its stored here
+        char textValue[20]; // else if text is a string/char its stored here
+    };
+    double value;
+} CellContent;
+
+typedef struct {
+    ROW row;
+    COL col;
+    CellContent content;
+    struct CellEntry *next; // separate chaining ( linked list )
+}CellEntry;
+
+typedef struct{
+    size_t size;
+    CellEntry *table[TABLE_SIZE];
+}hashTable;
+
+hashTable spreadsheet_table;
+
+int hash(ROW row, COL col){
+    char key[10];
+    snprintf(key, sizeof(key), "%d%d", row, col); //
+
+    int hashValue = 0;
+    for (int i =0; i < strlen(key); i++){
+        hashValue += key[i];
+    }
+    return hashValue % TABLE_SIZE;
+}
+
+
+CellEntry *createHashNode(int index, ROW row, COL col, char *text) {
+    CellEntry *newNode = (CellEntry *)malloc(sizeof(CellEntry));
+    if (newNode == NULL) {
+        printf("ERROR: Memory allocation failed.\n");
+        return NULL;
+    }
+
+    newNode->row = row;
+    newNode->col = col;
+
+    spreadsheet_table.table[index] = newNode;
+    newNode->next = spreadsheet_table.table[index];
+
+
+    newNode->content.isFormula = 0;
+
+    char *endptr;
+    double numericValue = strtod(text, &endptr);
+    if (*endptr == '\0') {
+        newNode->content.numericValue = numericValue;
+    } else {
+        strcpy(newNode->content.textValue, text);
+    }
+    update_cell_display(row, col, text);
+
+    return newNode;
+}
+
+
+void model_init() {
+    // TODO: implement this.
+    for (int i =0; i < TABLE_SIZE; i++){
+        spreadsheet_table.table[i] = NULL;
+    }
+}
+
+void set_cell_value(ROW row, COL col, char *text) {
+    // TODO: implement this.
+    //Find the desired index in my hashtable to store the current value
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    //loop to the end of my hash table
+    while (current != NULL){
+        if (current->row == row && current->col == col){ //already exists, add into this index
+            char *endptr; // making this so I can check if its letters or numbers
+            double numericValue = strtod(text, &endptr);
+
+            if(*endptr == '\0'){
+                current->content.numericValue = numericValue;
+                update_cell_display(row, col, text);
+            }else{
+                strcpy(current->content.textValue, text);
+
+                update_cell_display(row, col, text);
+            }
+            return;
+        }
+        current = current->next;
+    }
+        //DNE, create a new cell
+            createHashNode(foundIndex, row, col, text);
+            update_cell_display(row, col, text);
+        }
+
+
+
+
+void clear_cell(ROW row, COL col) {
+    // TODO: implement this.
+    int foundIndex = hash(row, col);
+
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+    CellEntry *prev = NULL;
+    //want to set the numerical and text to empty
+
+    while (current != NULL){
+        if (current->row == row && current->col == col){
+            current->content.isFormula = 0;// CHANGE LATER
+            current->content.numericValue = 0;
+            current->content.textValue[0] = '\0';
+            update_cell_display(row, col, "");
+
+            if (prev == NULL) { // remove from linked list
+                spreadsheet_table.table[foundIndex] = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            return;
+        }
+
+        prev = current;
+        current = current->next;
+    }
+
+    // This just clears the display without updating any data structure. You will need to change this.
+    update_cell_display(row, col, "");
+}
+
+char *get_textual_value(ROW row, COL col) {
+    // Find the index in the hashtable
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    // Loop through the linked list at the specified index
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+            // Convert numeric value to string and return
+            if (current->content.isFormula == 0) {
+                char *result = (char *)malloc(20); // Adjust the size as needed
+                if (result == NULL) {
+                    // Handle memory allocation error
+                    return NULL;
+                }
+                // Convert double to string
+                snprintf(result, 20, "%f", current->content.numericValue);
+                return result;
+            }
+            else {
+                // For text values, simply return the text
+                return current->content.textValue;
+            }
+        }
+        current = current->next;
+    }
+
+    // If the cell is not found, return NULL or an appropriate default value
+    return NULL;
+}
+
+
+
+//int main(){
+//    printf("test");
+//}
