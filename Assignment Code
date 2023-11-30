@@ -1,0 +1,258 @@
+#include "model.h"
+#include "interface.h"
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <stdbool.h>
+
+
+#define TABLE_SIZE 70
+
+//Structure of a cell, I am creating a new type: CellContent that I can assign to things to
+//access if its a formula or not, and assign a value
+
+typedef struct {
+    int isFormula; //1 is formula 0 isnt
+    union {
+        double numericValue; // if text is number, its stored here
+        char textValue[20]; // else if text is a string/char its stored here
+    };
+    char originalText[20];
+} CellContent;
+
+typedef struct {
+    ROW row;
+    COL col;
+    CellContent content;
+    struct CellEntry *next; // separate chaining ( linked list )
+}CellEntry;
+
+typedef struct{
+    CellEntry *table[TABLE_SIZE];
+}hashTable;
+
+hashTable spreadsheet_table;
+
+int hash(ROW row, COL col){
+    char key[10];
+
+    snprintf(key, sizeof(key), "%d%d", row, col); //
+
+    int hashValue = 0;
+    for (int i =0; i < strlen(key); i++){
+        hashValue += key[i];
+    }
+    return hashValue % TABLE_SIZE;
+}
+
+int isFormula(const char *text){
+    return (text[0] == '='); // formula checker, returns 1 if true 0 if false
+}
+
+// Function to evaluate a formula and return the result
+// Function to evaluate a formula and return the result
+double evaluateFormula(const char *text) {
+    double result = 0.0;
+    char operator = '+';
+
+    // Parse and evaluate the expression
+    while (*text != '\0') {
+
+        if (isdigit(*text)) {
+
+            double operand = strtod(text, (char**)&text);
+
+            switch(operator) {
+                case '+':
+                    result += operand;
+                    break;
+                case '-':
+                    result -= operand;
+                    break;
+            }
+        } else if (*text == '+' || *text == '-') {
+            operator = *text;
+            text++;
+        } else {
+            // Handle other cases as needed
+            text++;
+        }
+    }
+    return result;
+}
+
+
+CellEntry *createHashNode(int index, ROW row, COL col, char *text) {
+    CellEntry *newNode = (CellEntry *)malloc(sizeof(CellEntry));
+    if (newNode == NULL) {
+        return NULL;
+    }
+
+    newNode->row = row;
+    newNode->col = col;
+    newNode->next = spreadsheet_table.table[index];
+
+    if (isFormula(text)) {
+        newNode->content.isFormula = true;
+//        double numericValue = evaluateFormula(text);
+//        newNode->content.numericValue = numericValue;
+        strcpy(newNode->content.textValue, text);
+        strcpy(newNode->content.originalText, text);
+    }
+    else {
+
+        newNode->content.isFormula = 0;
+
+        char *endptr;
+        double numericValue = strtod(text, &endptr);
+        if (*endptr == '\0') {
+            newNode->content.numericValue = numericValue;
+        } else {
+            strcpy(newNode->content.textValue, text);
+        }
+        strcpy(newNode->content.originalText, text);
+    }
+
+    spreadsheet_table.table[index] = newNode;
+    update_cell_display(row, col, text);
+    return newNode;
+}
+
+
+
+
+
+void model_init() {
+    // TODO: implement this.
+    for (int i =0; i < TABLE_SIZE; i++){
+        spreadsheet_table.table[i] = NULL;
+    }
+}
+
+void set_cell_value(ROW row, COL col, char *text) {
+    // Find the desired index in my hashtable to store the current value
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    // Loop to the end of my hash table
+    while (current != NULL) {
+        if (current->row == row && current->col == col) { // Already exists, add into this index
+            char *endptr = NULL; // Initialize endptr
+
+            if (isFormula(text)) {
+                double numericValue = evaluateFormula(text); // Skip the '=' sign for formulas
+                current->content.numericValue = numericValue;
+                update_cell_display(row, col, text);
+            }
+            else {
+                double numericValue = strtod(text, &endptr);
+
+                if (endptr != NULL && *endptr == '\0') {
+                    current->content.numericValue = numericValue;
+                    update_cell_display(row, col, text);
+
+                } else {
+                    if (current->content.isFormula) {
+                        // Skip the '=' sign for formulas
+                        strcpy(current->content.textValue, text + 1);
+                        update_cell_display(row, col, text + 1);
+                    } else {
+                        strcpy(current->content.textValue, text);
+                        update_cell_display(row, col, text);
+                    }
+                }
+            }
+            return;
+        }
+        // Move to the next entry
+        (current) = (current->next);
+    }
+
+    // DNE, create a new cell
+    CellEntry *newNode = createHashNode(foundIndex, row, col, text);
+
+    // Check if the newly created cell is a formula
+    if (newNode->content.isFormula) {
+        double numberValue = evaluateFormula(text); // POTENTIALLY NEEDS TEXT + 1
+        newNode->content.numericValue = numberValue; // ERROR
+        char numericValueStr[20]; // Assuming a maximum of 20 characters
+        snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", spreadsheet_table.table[foundIndex]->content.numericValue);
+        update_cell_display(row, col, numericValueStr); // NEED TO GET THIS TO CORRECTLY DISPLAY TEH VALUE NOT TEXT
+    }
+    else {
+        update_cell_display(row, col, text);
+    }
+
+}
+
+
+
+void clear_cell(ROW row, COL col) {
+    // TODO: implement this.
+    int foundIndex = hash(row, col);
+
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+    CellEntry *prev = NULL;
+    //want to set the numerical and text to empty
+
+    while (current != NULL){
+        if (current->row == row && current->col == col){
+            current->content.isFormula = 0;// CHANGE LATER
+            current->content.numericValue = 0;
+            current->content.textValue[0] = '\0';
+            update_cell_display(row, col, "");
+
+            if (prev == NULL) { // remove from linked list
+                spreadsheet_table.table[foundIndex] = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            update_cell_display(row, col, "");
+            return;
+
+        }
+        prev = current;
+        current = current->next;
+        update_cell_display(row, col, "");
+
+    }
+
+    // This just clears the display without updating any data structure. You will need to change this.
+    update_cell_display(row, col, "");
+}
+char *get_textual_value(ROW row, COL col) { // THIS SHOULD DISPLAY THE FORMULA
+    // Find the index in the hashtable
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    // Loop through the linked list at the specified index
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+            // Check if it's a text value
+            if (current->content.textValue[0] != '\0') {// if theres no null character at the end it has to be a text val
+                return strdup(current->content.originalText);
+            }
+            else  {
+                char *result = (char *)malloc(20); //Creates the string for my numeric values
+                if (result == NULL) { // Memory allocation error, shouldnt reach here
+                    return NULL;
+                }
+
+                if (current->content.isFormula){
+                    return strdup(current->content.originalText);
+                }
+                snprintf(result, 20, "%.2f", current->content.numericValue); // need snprintf because im
+                //copying a numeric value (double) to a string, strcpy wouldn't work
+
+                char *finalResult = strdup(result);
+                free(result);
+                return finalResult;
+            }
+        }
+        current = current->next;
+    }
+    return NULL; // Base case, basically null will be displaying unless im in a cell with a value
+}
