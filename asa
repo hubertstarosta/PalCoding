@@ -1,0 +1,301 @@
+#include "model.h"
+#include "interface.h"
+#include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <math.h>
+
+#define TABLE_SIZE 70
+
+typedef struct {
+    int isFormula;
+    union {
+        double numericValue;
+        char textValue[20];
+    };
+    char originalText[20];
+    char originalFormula[20];
+} CellContent;
+
+typedef struct CellEntry CellEntry;
+typedef struct Dependency {
+    CellEntry *dependent;
+    struct Dependency *next;
+} Dependency;
+
+typedef struct CellEntry {
+    ROW row;
+    COL col;
+    CellContent content;
+    struct CellEntry *next;
+    Dependency *dependents;
+} CellEntry;
+
+typedef struct {
+    CellEntry *table[TABLE_SIZE];
+} hashTable;
+
+hashTable spreadsheet_table;
+
+void addDependency(CellEntry *cell, CellEntry *dependent) {
+    if (cell != NULL && dependent != NULL) {
+        Dependency *newDependency = (Dependency *)malloc(sizeof(Dependency));
+        if (newDependency != NULL) {
+            newDependency->dependent = dependent;
+            newDependency->next = cell->dependents;
+            cell->dependents = newDependency;
+        }
+    }
+}
+
+int hash(ROW row, COL col) {
+    char key[10];
+    snprintf(key, sizeof(key), "%d%d", row, col);
+
+    int hashValue = 0;
+    for (int i = 0; i < strlen(key); i++) {
+        hashValue += key[i];
+    }
+    return hashValue % TABLE_SIZE;
+}
+
+int isFormula(const char *text) {
+    return (text[0] == '=');
+}
+
+double getCellValue(ROW row, COL col) {
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+            return current->content.numericValue;
+        }
+        current = current->next;
+    }
+
+    return 0;
+}
+
+double evaluateFormula(const char *text, CellEntry *currentCell, ROW *referencedRow, COL *referencedCol) {
+    double result = 0.0;
+    char operator = '+';
+
+    while (*text != '\0') {
+        if (isdigit(*text)) {
+            double operand = strtod(text, (char**)&text);
+            switch(operator) {
+                case '+':
+                    result += operand;
+                    break;
+                case '-':
+                    result -= operand;
+                    break;
+                case '/':
+                    result /= operand;
+                    break;
+                case '*':
+                    result *= operand;
+                    break;
+                case '%':
+                    result = fmod(result, operand);
+                    break;
+                default:
+                    break;
+            }
+        } else if (isalpha(*text)) {
+            COL col = *text - 'A';
+            text++;
+            ROW row;
+            row = strtol(text, (char**)&text, 10) - 1;
+
+            *referencedRow = row;
+            *referencedCol = col;
+        } else if (strchr("+-/*%", *text)) {
+            operator = *text;
+            text++;
+        } else {
+            text++;
+        }
+    }
+    return result;
+}
+
+void updateDependents(CellEntry *cell) {
+    Dependency *dependency = cell->dependents;
+    while (dependency != NULL) {
+        CellEntry *dependent = dependency->dependent;
+        if (dependent != NULL) {
+            // Recalculate the value of the dependent cell based on the updated value of the current cell
+            double newCellValue = evaluateFormula(cell->content.textValue, dependent, &cell->row, &cell->col);
+
+            // Update the dependent cell's value
+            dependent->content.numericValue = newCellValue;
+
+            // Update the display for the dependent cell
+            char numericValueStr[20];
+            snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", dependent->content.numericValue);
+            update_cell_display(dependent->row, dependent->col, numericValueStr);
+        }
+
+        // Move to the next dependency
+        dependency = dependency->next;
+    }
+}
+
+
+CellEntry *createHashNode(int index, ROW row, COL col, char *text) {
+    CellEntry *newNode = (CellEntry *)malloc(sizeof(CellEntry));
+    if (newNode == NULL) {
+        return NULL;
+    }
+
+    newNode->row = row;
+    newNode->col = col;
+    newNode->next = spreadsheet_table.table[index];
+
+    if (isFormula(text)) {
+        newNode->content.isFormula = true;
+        strcpy(newNode->content.originalText, text);
+        strcpy(newNode->content.originalFormula, text);
+        newNode->content.numericValue = 0;
+        strcpy(newNode->content.textValue, "");
+    } else {
+        newNode->content.isFormula = 0;
+
+        char *endptr;
+        double numericValue = strtod(text, &endptr);
+        if (*endptr == '\0') {
+            newNode->content.numericValue = numericValue;
+        } else {
+            strcpy(newNode->content.textValue, text);
+        }
+        strcpy(newNode->content.originalText, text);
+    }
+
+    spreadsheet_table.table[index] = newNode;
+    update_cell_display(row, col, text);
+
+    if (newNode->content.isFormula) {
+        double numericValue = evaluateFormula(text, newNode, &row, &col);
+        newNode->content.numericValue = numericValue;
+        char numericValueStr[20];
+        snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", newNode->content.numericValue);
+
+        updateDependents(newNode);
+        update_cell_display(row, col, numericValueStr);
+
+        CellEntry *referencedCell = spreadsheet_table.table[hash(row, col)];
+        addDependency(referencedCell, newNode);
+    }
+    return newNode;
+}
+
+void model_init() {
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        spreadsheet_table.table[i] = NULL;
+    }
+}
+
+void set_cell_value(ROW row, COL col, char *text) {
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+            if (isFormula(text)) {
+                updateDependents(current);
+                current->content.numericValue = evaluateFormula(text, current, &current->row, &current->col);
+
+                strcpy(current->content.originalText, text);
+                double numericValue = evaluateFormula(text, current, &current->row, &current->col);
+                current->content.numericValue = numericValue;
+                char numericValueStr[20];
+                snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", current->content.numericValue);
+
+                update_cell_display(row, col, numericValueStr);
+            } else {
+                current->content.numericValue = strtod(text, NULL);
+            }
+            updateDependents(current);
+            char numericValueStr[20];
+            snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", current->content.numericValue);
+
+            update_cell_display(row, col, numericValueStr);
+
+            return;
+        }
+        current = current->next;
+    }
+
+    CellEntry *newNode = createHashNode(foundIndex, row, col, text);
+
+    if (newNode->content.isFormula) {
+        updateDependents(current);
+        newNode->content.numericValue = evaluateFormula(text, newNode, &current->row, &current->col);
+
+        char numericValueStr[20];
+        snprintf(numericValueStr, sizeof(numericValueStr), "%.2f", newNode->content.numericValue);
+        update_cell_display(row, col, numericValueStr);
+
+        updateDependents(newNode);
+        CellEntry *referencedCell = spreadsheet_table.table[hash(row, col)];
+        addDependency(referencedCell, newNode);
+    }
+}
+
+void clear_cell(ROW row, COL col) {
+    int foundIndex = hash(row, col);
+
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+    CellEntry *prev = NULL;
+
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+
+            current->content.isFormula = 0;
+            current->content.numericValue = 0;
+            current->content.textValue[0] = '\0';
+            update_cell_display(row, col, "");
+
+            if (prev == NULL) {
+                spreadsheet_table.table[foundIndex] = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            free(current);
+            update_cell_display(row, col, "");
+            return;
+        }
+        prev = current;
+        current = current->next;
+        update_cell_display(row, col, "");
+    }
+
+    update_cell_display(row, col, "");
+}
+
+char *get_textual_value(ROW row, COL col) {
+    int foundIndex = hash(row, col);
+    CellEntry *current = spreadsheet_table.table[foundIndex];
+
+    while (current != NULL) {
+        if (current->row == row && current->col == col) {
+            if (current->content.textValue[0] != '\0') {
+                return strdup(current->content.originalText);
+            } else {
+                char *result = (char *)malloc(20);
+                if (result == NULL) {
+                    return NULL;
+                }
+
+                return strdup(current->content.originalText);
+            }
+        }
+        current = current->next;
+    }
+    return NULL;
+}
