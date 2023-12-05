@@ -4,20 +4,19 @@
 #include "model.h"
 #include "interface.h"
 
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdio.h>
 
 typedef struct{
     long storedValue;
     char string[50];
 }Node;
-Node excelSheet[10][7];
-//char *parser(char *text){
-//
-//}
+
+Node excelSheet[7][10];
+
+
+
 long formulaEvaluator(char *text, long total){
 
     if (text[0] =='\0'){
@@ -43,38 +42,56 @@ long formulaEvaluator(char *text, long total){
         total /= formulaEvaluator((text+1), total);
         return total;
     }
-//    else if(64 < text[0] && text[0] < 72){
-//        switch(text[0]){
-//            case 65:
-//                total = excelSheet[(text[1])][0].storedValue;
-//                return formulaEvaluator((text+2), total);
-//
-//            default:
-//                total = excelSheet[(text[1])][0].storedValue;
-//                return formulaEvaluator((text+2), total);
-//        }
-//    }
+    else if((64 < text[0]) && (text[0] < 72)){
+        if (text[0] == 'A'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[0][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else if (text[0] == 'B'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[1][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else if (text[0] == 'C'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[2][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else if (text[0] == 'D'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[3][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else if (text[0] == 'E'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[4][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else if (text[0] == 'f'){
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[5][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+        else{
+            text = text+1;
+            int column = (int) strtol((text), &text, 10);
+            total = excelSheet[6][column-1].storedValue;
+            return formulaEvaluator(text, total);
+        }
+    }
     else{
         total = strtol(text, &text, 10);
         return formulaEvaluator((text), total);
-//        int flag = 0;
-//        for (int i = 0; i < strlen(text); i++) {
-//            if (isdigit(text[i]) == 0) {
-//                //excelSheet[col][row].storedValue = strtol(text, &text, 10);
-//                //strcpy(excelSheet[col][row].string, text);
-//                flag = 1;
-//                break;
-//            }
-//        }
-//        if (flag != 1){
-//            long sum = strtol(text, &text, 10);
-//            return formulaEvaluator((text+1), sum);
-//        }
-//        else{
-//            return 0;
-//        }
     }
 }
+
 int flagger(const char *text){
     int flag = 0;
     if(text[0] == '='){
@@ -129,3 +146,4 @@ char *get_textual_value(ROW row, COL col) {
     return strdup(excelSheet[col][row].string);
 
 }
+
